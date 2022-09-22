@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<head>
+<style>
+.modalMask
+{
+width: 100%;
+height: 100%;
+top: 0;
+left: 0;
+border: 1 px solid red;
+background: gray;
+position: fixed;
+opacity: 70%;
+}
+.modal
+{
+width:400px;
+min-width:400px;
+height:300px;
+min-height:300px;
+background-color:blue;
+position:fixed;
+top:0;
+left:0;
+bottom:0;
+right:0;
+margin:auto;
+border:2px solid white;
+}
+.closeButton
+{
+float:right;
+padding:2px 7px;
+cursor:pointer;
+margin-right:5px;
+margin-top:5px;
+font-size:14pt;
+}
+</style>
+<script>
+function $$$(cid)
+{
+let element=document.getElementById(cid);
+if(!element) throw "INVALID id :"+cid;
+return new TMJRockElement(element);
+}
+$$$.model={
+"accordians":[],
+"onStartup":[]
+};
+function accordianHeadingClicked(accordianIndex,panelIndex)
+{
+if($$$.model.accordians[accordianIndex].expandedIndex!=-1) $$$.model.accordians[accordianIndex].panels[$$$.model.accordians[accordianIndex].expandedIndex].style.display="none";
+$$$.model.accordians[accordianIndex].panels[panelIndex+1].style.display=$$$.model.accordians[accordianIndex].panels[panelIndex+1].oldDisplay;
+$$$.model.accordians[accordianIndex].expandedIndex=panelIndex+1;
+}
+$$$.toAccordian=function(cid)
+{
+let panels=[];
+let expandedIndex=-1;
+let accord=document.getElementById(cid);
+let children=accord.childNodes;
+let x;
+for(x=0;x<children.length;x++)
+{
+if(children[x].nodeName=="H3")
+{
+panels[panels.length]=children[x];
+}
+if(children[x].nodeName=="DIV")
+{
+panels[panels.length]=children[x];
+}
+}
+if(panels.length%2!=0) throw "Heading and division malformed to create accordian";
+for(x=0;x<panels.length;x+=2)
+{
+if(panels[x].nodeName!="H3") throw "Heading and division malformed to create accordian";
+if(panels[x+1].nodeName!="DIV") throw "Heading and division malformed to create accordian";
+}
+function createClickHandler(accordianIndex,panelIndex)
+{
+return function(){
+accordianHeadingClicked(accordianIndex,panelIndex);
+};
+}
+let accordianIndex=$$$.model.accordians.length;
+for(x=0;x<panels.length;x+=2)
+{
+panels[x].onclick=createClickHandler(accordianIndex,x);
+panels[x+1].oldDisplay=panels[x+1].style.display;
+panels[x+1].style.display="none";
+}
+$$$.model.accordians[accordianIndex]={
+"panels":panels,
+"expandedIndex":-1
+};
+}
+$$$.onDocumentLoaded=function(func)
+{
+if((typeof func)!="function") throw "Argument passed must be of type of function";
+$$$.model.onStartup[$$$.model.onStartup.length]=func;
+};
+$$$.initFramework=function()
+{
+let x=0;
+while(x<$$$.model.onStartup.length)
+{
+$$$.model.onStartup[x]();
+x++;
+}
+};
+window.addEventListener('load',function(){
+$$$.initFramework();
+});
+$$$.onDocumentLoaded(function(){
+$$$.toAccordian("mymy");
+$$$.toAccordian("gogo");
+});
+function TMJRockElement(element)
+{
+this.element=element;
+this.html=function(content)
+{
+if(this.element.innerHTML)
+{
+if((typeof content)=="string")
+{
+this.element.innerHTML=content;
+}
+return this.element.innerHTML;
+}
+return null;
+}
+this.value=function(content)
+{
+if(this.element.value)
+{
+if((typeof content)=="string")
+{
+this.element.value=content;
+}
+return this.element.value;
+}
+return null;
+}
+}
+$$$.ajax=function(jsonObject)
+{
+if(!jsonObject["url"]) throw "url must be mentioned in call to ajax";
+let url=jsonObject["url"];
+if((typeof url)!="string") throw "url must be of type string";
+let methodType="GET";
+if(!jsonObject["methodType"]) throw "methodType should be mentioned in call to ajax";
+methodType=jsonObject["methodType"];
+if((typeof methodType)!="string") throw "methodType should be of type string in call to ajax";
+let onSuccess=null;
+if(jsonObject["success"])
+{
+onSuccess=jsonObject["success"];
+if((typeof onSuccess)!="function") throw "success must be of type function in call to ajax";
+}
+let onFailure=null;
+if(jsonObject["failure"])
+{
+onFailure=jsonObject["failure"];
+if((typeof onFailure)!="function") throw "failure must be of type function in call to ajax"; 
+}
+if(methodType=="GET")
+{
+var xmlHttpRequest=new XMLHttpRequest();
+xmlHttpRequest.onreadystatechange=function()
+{
+if(this.readyState==4)
+{
+if(this.status==200)
+{
+var responseData=this.responseText;
+if(onSuccess) onSuccess(responseData);
+}
+else
+{
+if(onFailure) onFailure();
+}
+}
+};
+xmlHttpRequest.open(methodType,url,true);
+xmlHttpRequest.send();
+}
+if(methodType=="POST")
+{
+var xmlHttpRequest=new XMLHttpRequest();
+xmlHttpRequest.onreadystatechange=function()
+{
+if(this.readyState==4)
+{
+if(this.status==200)
+{
+var responseData=this.responseText;
+if(onSuccess) onSuccess(responseData);
+}
+else
+{
+if(onFailure) onFailure();
+}
+}
+};
+let jsonData={};
+let queryString="";
+let sendJSON=null;
+if(!jsonObject["sendJSON"]) sendJSON=false;
+sendJSON=jsonObject["sendJSON"];
+if((typeof sendJSON)!="boolean") throw "sendJSON type should be of boolean type";
+if(!jsonObject["data"]) throw "Data must be specified in call to ajax";
+if(jsonObject["data"])
+{
+if(sendJSON)
+{
+jsonData=jsonObject["data"];
+}
+else
+{
+let data=jsonObject["data"];
+let qsName=null;
+let qsValue=null;
+let xx=0;
+for(k in data)
+{
+if(xx==0) queryString="?";
+if(xx>0) queryString=queryString+"&";
+xx++;
+qsName=k;
+qsValue=data[k];
+queryString=queryString+qsName+qsValue;
+}//for loop ends
+}
+}
+xmlHttpRequest.open(methodType,url,true);
+if(sendJSON)
+{
+alert(JSON.stringify(jsonData));
+xmlHttpRequest.setRequestHeader("content-type","application/json");
+xmlHttpRequest.send(JSON.stringify(jsonData));
+}
+else
+{
+alert(queryString);
+xmlHttpRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+xmlHttpRequest.send(queryString);
+}
+}
+}
+//TMJRock part ends
+</script>
+</head>
+<body>
+<div id="mymy">
+<h3>Heading 1</h3>
+<div>
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+</div>
+<h3>Heading 2</h3>
+<div>
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+</div>
+<h3>Heading 3</h3>
+<div>
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+</div>
+</div>
+<div id="gogo">
+<h3>Heading 1</h3>
+<div>
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+</div>
+<h3>Heading 2</h3>
+<div>
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+</div>
+<h3>Heading 3</h3>
+<div>
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+1 whatever whatever
+</div>
+</div>
+</body>
+</html>
